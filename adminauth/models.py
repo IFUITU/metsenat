@@ -1,4 +1,5 @@
-
+from decimal import Decimal
+from django.core.validators import MinValueValidator
 from django.db.models import Sum
 from django.db import models
 
@@ -38,8 +39,8 @@ class Patron(TimeStapedModel):
         # validators=[PhoneValidator()]
     ) 
     condition = models.CharField(max_length=18, choices=conditions, default="moderation", null=True, blank=True)
-    payment = models.FloatField(null=True, blank=True)                                       #with how much money patron entered
-    payment_sum = models.FloatField(null=True, blank=True)                                   #sum of all payments
+    payment = models.FloatField(null=True, blank=True, validators=[MinValueValidator(Decimal("0.1"))])                                       #with how much money patron entered
+    payment_sum = models.FloatField(null=True, blank=True, validators=[MinValueValidator(Decimal("0.1"))])                                   #sum of all payments
     payment_type = models.CharField(max_length=40, choices=typePayment, default="CashTrans", null=True, blank=True)
     name_company = models.CharField(max_length=256, null=True, blank=True)                   #if patron type is yuridik u must endter name
 
@@ -50,8 +51,8 @@ class Student(TimeStapedModel):
     full_name = models.CharField(max_length=256, blank=True, null=True)
     student_type = models.CharField(max_length=18, choices=typeStudent, blank=True, null=True)
     OTM = models.ForeignKey("OTM", on_delete=models.SET_NULL, null=True)
-    payed_sum = models.FloatField(null=True, blank=True)
-    contract_sum = models.FloatField(null=True, blank=True)
+    payed_sum = models.FloatField(null=True, blank=True, validators=[MinValueValidator(Decimal("0.1"))])
+    contract_sum = models.FloatField(null=True, blank=True, validators=[MinValueValidator(Decimal("0.1"))])
     
     @property
     def must_pay(self):
@@ -64,7 +65,7 @@ class Student(TimeStapedModel):
 class PatronToStudent(TimeStapedModel):
     patron = models.ForeignKey("Patron", on_delete=models.CASCADE, null=True)
     student = models.ForeignKey("Student", on_delete=models.CASCADE, null=True)
-    payed = models.FloatField(null=True, default=0)
+    payed = models.FloatField(null=True, default=0, validators=[MinValueValidator(Decimal("0.1"))])
 
     def save(self):
         pass

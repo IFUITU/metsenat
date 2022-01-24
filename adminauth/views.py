@@ -5,18 +5,18 @@ from rest_framework.views import APIView
 from rest_framework.generics import RetrieveAPIView
 from .serializers import PatronSerializer, PatronToStudentSerializer, StudentSerializer, PatronToStudent, StudentSerializerGET, PatronToStudentSerializerGET
 from rest_framework.response import Response
-# Create your views here.
+from rest_framework.pagination import PageNumberPagination
 
-class PatronApiView(APIView):
+class PatronApiView(APIView, PageNumberPagination):
     permission_classes = [IsAuthenticated]
     def get(self, request):
         try:
             patrons = Patron.objects.all()
         except Patron.DoesNotExist as ex:
             return Response({"error":"Patron does not exist"})
-        get_patrons = PatronSerializer(patrons, many=True, context={"request":request})
-
-        return Response({"ok":True,"data":get_patrons.data}, status=200)
+        result = self.paginate_queryset(patrons,request,view=self)
+        serialized = PatronSerializer(result, many=True, context={"request":request})
+        return self.get_paginated_response({"ok":True,"data":serialized.data, "page_size":self.page_size})
 
     def post(self, request):
         seriallized = PatronSerializer(data=request.data)
@@ -56,16 +56,17 @@ class PatronRetrieve(APIView):
         patron.delete()
         return Response({"ok":True, "data":"SUCCESSFULLY DELETED!"})
 
-class StudentApiView(APIView):
+class StudentApiView(APIView, PageNumberPagination):
     # permission_classes = [IsAuthenticated]
     def get(self, request):
         try:
             students = Student.objects.all()
         except Student.DoesNotExist as ex:
             return Response({"error":"Students does not exist"})
-        get_students = StudentSerializerGET(students, many=True, context={"request":request})
+        result = self.paginate_queryset(students, request, view=self)
+        get_students = StudentSerializerGET(result, many=True, context={"request":request})
 
-        return Response({"ok":True,"data":get_students.data}, status=200)
+        return self.get_paginated_response({"ok":True,"data":get_students.data, "page_size":self.page_size})
 
     def post(self, request):
         seriallized = StudentSerializer(data=request.data)
