@@ -15,7 +15,7 @@ def searchPatron(request):
     except Patron.DoesNotExist as ex:
         return Response({"error":dict(ex)})
     filterset = PatronFilter(request.data, queryset=query)
-    print(request.data)
+
     if not filterset.is_valid():
         return Response({"errors":filterset.errors})
     patrons = PatronSerializer(filterset.qs, many=True)
@@ -30,7 +30,6 @@ def searchStudent(request):
     except Student.DoesNotExist as ex:
         return Response({"error":dict(ex)})
     filterset = StudentFilter(request.data, queryset=query)
-    print(request.data)
     if not filterset.is_valid():
         return Response({"errors":filterset.errors})
     patrons = StudentSerializerGET(filterset.qs, many=True)

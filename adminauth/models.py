@@ -56,7 +56,7 @@ class Student(TimeStapedModel):
     
     @property
     def must_pay(self):
-        payed_sum = self.objects.aggregate(Sum('payed_sum'))
+        payed_sum = self.contract_sum - self.objects.aggregate(Sum('payed_sum'))
         
 
     def __str__(self):

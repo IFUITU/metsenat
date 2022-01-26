@@ -1,25 +1,17 @@
-from django.contrib.auth.decorators import login_required
-from django.utils.decorators import method_decorator
-from rest_framework import permissions, serializers  #to use login required in class for one def!
 from .models import User
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
-from rest_framework.views import APIView
+from rest_framework.generics import CreateAPIView
 from rest_framework.response import Response
-from rest_framework.decorators import  api_view, permission_classes
+from rest_framework.views import  APIView
 from rest_framework.permissions import IsAuthenticated
 from .serializer import ClientSerializer, ClientSerializerPUT, ChangePasswordSerializer
 
-# Create your views here.
 
-@api_view(["POST"])
-@permission_classes([~IsAuthenticated])
-def registration(request):
-    serializer = ClientSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response({"ok":True, "data":serializer.data})
-    return Response({"ok":False,"error":serializer.errors})
+class registration(CreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = ClientSerializer
+    permission_classes = [~IsAuthenticated]
 
 class LoginApi(APIView):
     permission_classes = [~IsAuthenticated]
@@ -38,7 +30,6 @@ class LoginApi(APIView):
             request.auth.delete()
             return Response({"ok":True,"data":"Come back soon!"})
         return Response({"ok":False, "data":"Something wrong!"})
-
 
 
 class UserApiView(APIView):

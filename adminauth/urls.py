@@ -12,12 +12,12 @@ filterUrls = [
 
 urlpatterns = [
     path("homiylar/", PatronApiView.as_view()),
-    path("homiy/<int:id>/", PatronRetrieve.as_view()),
+    path("homiy/<int:pk>/", PatronRetrieve.as_view()),
     path("statistics/", DashApiView.as_view()),
-    path("student/<int:id>/", StudentRetrieveView.as_view()),
+    path("student/<int:pk>/", StudentRetrieveView.as_view()),
     path("student/", StudentApiView.as_view()),
     path("homiytostudent/", PatronToStudentView.as_view()),
-    path("homiytostudent/<int:id>/", PatronToStudentRetrieveView.as_view()),
+    path("homiytostudent/<int:pk>/", PatronToStudentRetrieveView.as_view()),
 
 
 

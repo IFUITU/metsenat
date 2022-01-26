@@ -2,160 +2,63 @@ from django.shortcuts import render
 from .models import Patron, Student
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
-from rest_framework.generics import RetrieveAPIView
+from rest_framework.generics import  RetrieveUpdateDestroyAPIView, ListCreateAPIView
 from .serializers import PatronSerializer, PatronToStudentSerializer, StudentSerializer, PatronToStudent, StudentSerializerGET, PatronToStudentSerializerGET
 from rest_framework.response import Response
-from rest_framework.pagination import PageNumberPagination
+from rest_framework import status
 
-class PatronApiView(APIView, PageNumberPagination):
-    permission_classes = [IsAuthenticated]
-    def get(self, request):
-        try:
-            patrons = Patron.objects.all()
-        except Patron.DoesNotExist as ex:
-            return Response({"error":"Patron does not exist"})
-        result = self.paginate_queryset(patrons,request,view=self)
-        serialized = PatronSerializer(result, many=True, context={"request":request})
-        return self.get_paginated_response({"ok":True,"data":serialized.data, "page_size":self.page_size})
-
-    def post(self, request):
-        seriallized = PatronSerializer(data=request.data)
-        if seriallized.is_valid():
-            seriallized.save()
-            return Response({"ok":True, "data":seriallized.data})
-        return Response({"ok":False, "errors":seriallized.errors})
-
-class PatronRetrieve(APIView):
-    def get(self, request, id):
-        try:
-            patron = Patron.objects.get(id=id)
-        except Patron.DoesNotExist:
-            return Response({"ok":False,'error':"Patron does not exist!"})
-
-        serialized = PatronSerializer(patron, many=False)
-        return Response({"ok":True, 'data':serialized.data})
-
-    def put(self, r, id):
-        try:
-            patron = Patron.objects.get(id=id)
-        except Patron.DoesNotExist as ex:
-            return Response({"error":ex})
-
-        serialized = PatronSerializer(instance=patron, data=r.data, context={"request":r})
-        print(serialized.initial_data)
-        if serialized.is_valid():
-            serialized.save()
-            return Response({"data":serialized.data,"ok":True}, status=200)
-        return Response({"data":serialized.errors,"ok":False})
-
-    def delete(self, request, id):
-        try:
-            patron = Patron.objects.get(id=id)
-        except Patron.DoesNotExist as ex:
-            return Response({"ok":False,"error":ex})
-        patron.delete()
-        return Response({"ok":True, "data":"SUCCESSFULLY DELETED!"})
-
-class StudentApiView(APIView, PageNumberPagination):
+class PatronApiView(ListCreateAPIView):
     # permission_classes = [IsAuthenticated]
-    def get(self, request):
+    queryset = Patron.objects.all()
+    serializer_class = PatronSerializer
+
+
+class PatronRetrieve(RetrieveUpdateDestroyAPIView):
+    queryset = Patron.objects.all()
+    serializer_class = PatronSerializer
+
+
+class StudentApiView(ListCreateAPIView):
+    # permission_classes = [IsAuthenticated]
+    queryset = Student.objects.all()
+    serializer_class = StudentSerializer
+
+
+class StudentRetrieveView(RetrieveUpdateDestroyAPIView):
+    queryset = Student.objects.all()
+    serializer_class = StudentSerializer
+
+    def get(self, request, pk):
         try:
-            students = Student.objects.all()
-        except Student.DoesNotExist as ex:
-            return Response({"error":"Students does not exist"})
-        result = self.paginate_queryset(students, request, view=self)
-        get_students = StudentSerializerGET(result, many=True, context={"request":request})
-
-        return self.get_paginated_response({"ok":True,"data":get_students.data, "page_size":self.page_size})
-
-    def post(self, request):
-        seriallized = StudentSerializer(data=request.data)
-        if seriallized.is_valid():
-            seriallized.save()
-            return Response({"ok":True, "data":seriallized.data})
-        return Response({"ok":False, "errors":seriallized.errors})
-
-class StudentRetrieveView(APIView):
-
-    def get(self, request, id):
-        try:
-            student = Student.objects.get(id=id)
+            student = self.get_object()
         except Student.DoesNotExist:
             return Response({"ok":False,'error':"Student does not exist!"})
         patrons = PatronToStudent.objects.filter(student_id=student.id)
         patron_serialized = PatronToStudentSerializer(patrons, many=True)
-
+        
         serialized = StudentSerializerGET(student, many=False)
         return Response({"ok":True, 'data':serialized.data, "patrons":patron_serialized.data})
 
-    def put(self, r, id):
-        try:
-            student = Student.objects.get(id=id)
-        except Student.DoesNotExist as ex:
-            return Response({"error":dict(ex)})
 
-        serialized = StudentSerializer(instance=student, data=r.data, context={"request":r})
-        # print(serialized.initial_data)
-        if serialized.is_valid():
-            # print(serialized.validated_data)
-            serialized.save()
-            return Response({"data":serialized.data,"ok":True}, status=200)
-        return Response({"data":serialized.errors,"ok":False})
-
-    def delete(self, request, id):
-        try:
-            student = Student.objects.get(id=id)
-        except Student.DoesNotExist as ex:
-            return Response({"ok":False,"error":dict(ex)})
-        student.delete()
-        return Response({"ok":True, "data":"SUCCESSFULLY DELETED!"})
-
-class PatronToStudentView(APIView):
+class PatronToStudentView(ListCreateAPIView):
+    queryset = PatronToStudent.objects.all()
+    serializer_class = PatronToStudentSerializer
     
-    def get(self, request):
+    def list(self, request):
+        queryset = self.get_queryset()
+        serialized = PatronToStudentSerializerGET(queryset, many=True)
+        return Response({"ok":True,"data":serialized.data})
+    
+
+class PatronToStudentRetrieveView(RetrieveUpdateDestroyAPIView):
+    queryset = PatronToStudent.objects.all()
+    serializer_class = PatronSerializer
+
+    def get(self, request, pk):
         try:
-            query = PatronToStudent.objects.all()
-        except PatronToStudent.DoesNotExist as ex:
-            return Response({"error":dict(ex)})
-        serialized = PatronToStudentSerializerGET(query, many=True, context={"request":request})
-
-        return Response({"ok":True,"data":serialized.data}, status=200)
-
-    def post(self, request):
-        serialized = PatronToStudentSerializer(data=request.data)
-        
-        if serialized.is_valid():
-            serialized.save()
-            return Response({"ok":True, "data":serialized.data})
-        return Response({"ok":False, "errors":serialized.errors})
-
-class PatronToStudentRetrieveView(APIView):
-    def get(self, request, id):
-        try:
-            query = PatronToStudent.objects.get(id=id)
+            query = PatronToStudent.objects.get(pk=pk)
         except PatronToStudent.DoesNotExist as ex:
             return Response({"ok":False,'error':str(ex)})
 
         serialized = PatronToStudentSerializerGET(query, many=False)
         return Response({"ok":True, 'data':serialized.data})
-
-    def put(self, r, id):
-        try:
-            query = PatronToStudent.objects.get(id=id)
-        except PatronToStudent.DoesNotExist as ex:
-            return Response({"error":dict(ex)})
-
-        serialized = PatronToStudentSerializer(instance=query, data=r.data, context={"request":r})
-        print(serialized.initial_data)
-        if serialized.is_valid():
-            serialized.save()
-            return Response({"data":serialized.data,"ok":True}, status=200)
-        return Response({"data":serialized.errors,"ok":False})
-
-    def delete(self, request, id):
-        try:
-            query = PatronToStudent.objects.get(id=id)
-        except PatronToStudent.DoesNotExist as ex:
-            return Response({"ok":False,"error":dict(ex)})
-        query.delete()
-        return Response({"ok":True, "data":"SUCCESSFULLY DELETED!"})
