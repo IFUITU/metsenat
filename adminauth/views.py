@@ -1,11 +1,13 @@
-from django.shortcuts import render
+from functools import partial
+from django.shortcuts import get_object_or_404, render
 from .models import Patron, Student
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.generics import  RetrieveUpdateDestroyAPIView, ListCreateAPIView
-from .serializers import PatronSerializer, PatronToStudentSerializer, StudentSerializer, PatronToStudent, StudentSerializerGET, PatronToStudentSerializerGET
+from .serializers import PatronSerializer, PatronToStudentSerializer, StudentSerializer, PatronToStudent, PatronToStudentSerializerGET
 from rest_framework.response import Response
 from rest_framework import status
+from .helpers import calculate
 
 class PatronApiView(ListCreateAPIView):
     # permission_classes = [IsAuthenticated]
@@ -36,7 +38,7 @@ class StudentRetrieveView(RetrieveUpdateDestroyAPIView):
         patrons = PatronToStudent.objects.filter(student_id=student.id)
         patron_serialized = PatronToStudentSerializer(patrons, many=True)
         
-        serialized = StudentSerializerGET(student, many=False)
+        serialized = StudentSerializer(student, many=False)
         return Response({"ok":True, 'data':serialized.data, "patrons":patron_serialized.data})
 
 
@@ -46,19 +48,38 @@ class PatronToStudentView(ListCreateAPIView):
     
     def list(self, request):
         queryset = self.get_queryset()
-        serialized = PatronToStudentSerializerGET(queryset, many=True)
-        return Response({"ok":True,"data":serialized.data})
-    
+        result = self.paginate_queryset(queryset)
+        serialized = PatronToStudentSerializerGET(result, many=True)
+        return self.get_paginated_response({"ok":True,"data":serialized.data})
+
+    def create(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        calculate(serializer.data)
+        headers = self.get_success_headers(serializer.data)
+        
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 class PatronToStudentRetrieveView(RetrieveUpdateDestroyAPIView):
     queryset = PatronToStudent.objects.all()
-    serializer_class = PatronSerializer
+    serializer_class = PatronToStudentSerializer
 
     def get(self, request, pk):
         try:
-            query = PatronToStudent.objects.get(pk=pk)
+            query = self.get_object()
         except PatronToStudent.DoesNotExist as ex:
             return Response({"ok":False,'error':str(ex)})
 
         serialized = PatronToStudentSerializerGET(query, many=False)
+        return Response({"ok":True, 'data':serialized.data})
+    
+    def put(self, request, *args, **kwargs):
+        kwargs['prev_obj'] = self.get_object()
+        serialized = self.get_serializer(instance=self.get_object(), data=request.data)
+        serialized.is_valid(raise_exception=True)
+        self.perform_update(serialized)
+        calculate(serialized.data, **kwargs)
+
         return Response({"ok":True, 'data':serialized.data})

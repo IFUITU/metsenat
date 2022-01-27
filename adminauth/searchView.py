@@ -1,6 +1,6 @@
 from rest_framework.views import APIView
 from .models import Patron, Student
-from .serializers import PatronSerializer, StudentSerializerGET
+from .serializers import PatronSerializer, StudentSerializer
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
@@ -32,8 +32,8 @@ def searchStudent(request):
     filterset = StudentFilter(request.data, queryset=query)
     if not filterset.is_valid():
         return Response({"errors":filterset.errors})
-    patrons = StudentSerializerGET(filterset.qs, many=True)
-    return Response({"data":patrons.data})
+    students = StudentSerializer(filterset.qs, many=True)
+    return Response({"data":students.data})
 
 
 
