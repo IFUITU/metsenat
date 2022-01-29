@@ -32,7 +32,6 @@ class ChangePasswordSerializer(serializers.ModelSerializer):
     new = serializers.CharField(required=True, max_length=35, min_length=6, write_only=True)
     confirm = serializers.CharField(required=True, max_length=35, min_length=6, write_only=True)
     
-
     def validate(self, data):
         error = {}
         if not self.context['request'].user.check_password(data.get("password")):

@@ -18,6 +18,7 @@ class OTMSerializer(serializers.ModelSerializer):
         fields = "__all__"
         read_only_fields = ('id',)
 
+
 class StudentSerializer(serializers.ModelSerializer):
     remainder_contract = serializers.ReadOnlyField()
     class Meta:
@@ -52,9 +53,9 @@ class PatronToStudentSerializer(serializers.ModelSerializer):
             )
         return data
 
+
 class PatronToStudentSerializerGET(serializers.ModelSerializer):
     class Meta:
         model = PatronToStudent
         fields = "__all__"
         depth = 1 #works only for read 
-        

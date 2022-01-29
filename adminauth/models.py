@@ -52,6 +52,7 @@ class Patron(TimeStapedModel):
     def __str__(self):
         return self.full_name
 
+
 class Student(TimeStapedModel):
     full_name = models.CharField(max_length=256, blank=True, null=True)
     student_type = models.CharField(max_length=18, choices=typeStudent, blank=True, null=True)
@@ -67,12 +68,12 @@ class Student(TimeStapedModel):
 
     def __str__(self):
         return self.full_name
-        
+
+
 class PatronToStudent(TimeStapedModel):
     patron = models.ForeignKey("Patron", on_delete=models.CASCADE, null=True)
     student = models.ForeignKey("Student", on_delete=models.CASCADE, null=True)
     payed = models.FloatField(null=True, default=0, validators=[MinValueValidator(Decimal("0"))])
-
 
 
 class OTM(TimeStapedModel):

@@ -58,12 +58,11 @@ class UserApiView(APIView):
 
     def patch(self, r):
         try:
-            user_obj = User.objects.get(id=r.user.id)
+            user_obj = r.user
         except User.DoesNotExist:
             return Response({"error":"User not Found!"})
 
         serialized = ChangePasswordSerializer(instance=r.user, data=r.data, context={"request":r})
-        # print(serialized.initial_data)
         if serialized.is_valid():
             user_obj.set_password(serialized.validated_data.get('new'))
             user_obj.save()

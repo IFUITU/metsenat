@@ -33,14 +33,11 @@ class StudentRetrieveView(RetrieveUpdateDestroyAPIView):
     serializer_class = StudentSerializer
 
     def get(self, request, pk):
-        try:
-            student = self.get_object()
-        except Student.DoesNotExist:
-            return Response({"ok":False,'error':"Student does not exist!"})
+        student = self.get_object()
         patrons = PatronToStudent.objects.filter(student_id=student.id)
         patron_serialized = PatronToStudentSerializer(patrons, many=True)
-        
         serialized = StudentSerializer(student, many=False)
+
         return Response({"ok":True, 'data':serialized.data, "patrons":patron_serialized.data})
 
 
@@ -52,38 +49,36 @@ class PatronToStudentView(ListCreateAPIView):
         queryset = self.get_queryset()
         result = self.paginate_queryset(queryset)
         serialized = PatronToStudentSerializerGET(result, many=True)
+
         return self.get_paginated_response({"ok":True,"data":serialized.data})
 
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
-        calculate(serializer.data)
+        calculate(serializer.data) #add pyment to patron and student
         headers = self.get_success_headers(serializer.data)
         
-
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
 
 class PatronToStudentRetrieveView(RetrieveUpdateDestroyAPIView):
     queryset = PatronToStudent.objects.all()
     serializer_class = PatronToStudentSerializer
 
-    def get(self, request, pk):
-        try:
-            query = self.get_object()
-        except PatronToStudent.DoesNotExist as ex:
-            return Response({"ok":False,'error':str(ex)})
-
+    def get(self, request, *args, **kwargs):
+        query = self.get_object()    
         serialized = PatronToStudentSerializerGET(query, many=False)
+
         return Response({"ok":True, 'data':serialized.data})
     
     def put(self, request, *args, **kwargs):
         kwargs['prev_obj'] = self.get_object()
         serialized = self.get_serializer(instance=self.get_object(), data=request.data)
         serialized.is_valid(raise_exception=True)
-        vlidate_student(kwargs['prev_obj'].student, serialized.validated_data['student'])
+        vlidate_student(kwargs['prev_obj'].student, serialized.validated_data['student']) #you can't change student
         self.perform_update(serialized)
-        calculate(serialized.data, **kwargs)
+        calculate(serialized.data, **kwargs) #to canculate patron and students payment
 
         return Response({"ok":True, 'data':serialized.data})
     
@@ -93,4 +88,5 @@ class PatronToStudentRetrieveView(RetrieveUpdateDestroyAPIView):
         obj.student.payed_sum = obj.student.payed_sum - obj.payed
         obj.patron.save()
         obj.student.save()
+
         return self.destroy(request, *args, **kwargs)

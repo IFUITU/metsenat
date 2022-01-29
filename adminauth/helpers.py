@@ -1,4 +1,3 @@
-
 from .models import Student, Patron
 from rest_framework.validators import ValidationError
 def calculate(obj, **kwargs):
@@ -19,6 +18,5 @@ def calculate(obj, **kwargs):
 
     patron.payment_sum = patron.payment_sum + obj['payed']
     student.payed_sum = student.payed_sum + obj['payed']
-
     patron.save()
     student.save()
