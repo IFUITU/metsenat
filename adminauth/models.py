@@ -1,7 +1,9 @@
 from decimal import Decimal
 from django.core.validators import MinValueValidator
-from django.db.models import Sum
 from django.db import models
+from django.db.models.signals import pre_save, pre_delete
+from django.dispatch import receiver
+from rest_framework.validators import ValidationError
 
 
 # Create your models here.
@@ -83,4 +85,40 @@ class OTM(TimeStapedModel):
         return self.name
 
 
+#------------------------SIGNALS-------------------------
 
+
+@receiver(pre_save, sender=PatronToStudent)
+def calculate_signal(sender, instance, **kwargs):
+    try:
+        patron = instance.patron
+        student = instance.student
+    except Exception as ex:
+        raise ValidationError(ex)
+        
+    if instance.pk:
+        prev_obj = PatronToStudent.objects.get(pk=instance.pk)
+        if prev_obj.student != student:
+            raise ValidationError("Student can't be chnged!")
+
+        if prev_obj.patron != instance.patron:
+            prev_obj.patron.payment_sum = prev_obj.patron.payment_sum - prev_obj.payed
+            prev_obj.patron.save()
+        else:
+            patron.payment_sum = patron.payment_sum - prev_obj.payed
+            
+    student.payed_sum = student.payed_sum - prev_obj.payed
+    patron.payment_sum = patron.payment_sum + instance.payed
+    student.payed_sum = student.payed_sum + instance.payed
+
+    patron.save()
+    student.save()
+
+
+@receiver(pre_delete, sender=PatronToStudent)
+def calculate_delete(sender, instance, **kwargs):
+    if instance.pk:
+        instance.patron.payment_sum = instance.patron.payment_sum - instance.payed
+        instance.student.payed_sum = instance.student.payed_sum - instance.payed
+        instance.patron.save()
+        instance.student.save()

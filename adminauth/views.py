@@ -1,6 +1,5 @@
-from functools import partial
+
 from rest_framework.validators import ValidationError
-from django.shortcuts import get_object_or_404, render
 from .models import Patron, Student
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -8,8 +7,7 @@ from rest_framework.generics import  RetrieveUpdateDestroyAPIView, ListCreateAPI
 from .serializers import PatronSerializer, PatronToStudentSerializer, StudentSerializer, PatronToStudent, PatronToStudentSerializerGET
 from rest_framework.response import Response
 from rest_framework import status
-from .helpers import calculate
-from .validators import vlidate_student
+
 
 class PatronApiView(ListCreateAPIView):
     # permission_classes = [IsAuthenticated]
@@ -52,15 +50,6 @@ class PatronToStudentView(ListCreateAPIView):
 
         return self.get_paginated_response({"ok":True,"data":serialized.data})
 
-    def create(self, request):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        calculate(serializer.data) #add pyment to patron and student
-        headers = self.get_success_headers(serializer.data)
-        
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-
 
 class PatronToStudentRetrieveView(RetrieveUpdateDestroyAPIView):
     queryset = PatronToStudent.objects.all()
@@ -71,22 +60,3 @@ class PatronToStudentRetrieveView(RetrieveUpdateDestroyAPIView):
         serialized = PatronToStudentSerializerGET(query, many=False)
 
         return Response({"ok":True, 'data':serialized.data})
-    
-    def put(self, request, *args, **kwargs):
-        kwargs['prev_obj'] = self.get_object()
-        serialized = self.get_serializer(instance=self.get_object(), data=request.data)
-        serialized.is_valid(raise_exception=True)
-        vlidate_student(kwargs['prev_obj'].student, serialized.validated_data['student']) #you can't change student
-        self.perform_update(serialized)
-        calculate(serialized.data, **kwargs) #to canculate patron and students payment
-
-        return Response({"ok":True, 'data':serialized.data})
-    
-    def delete(self, request, *args, **kwargs):
-        obj = self.get_object()
-        obj.patron.payment_sum = obj.patron.payment_sum - obj.payed
-        obj.student.payed_sum = obj.student.payed_sum - obj.payed
-        obj.patron.save()
-        obj.student.save()
-
-        return self.destroy(request, *args, **kwargs)

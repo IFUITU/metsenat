@@ -1,5 +1,7 @@
 from dataclasses import fields
 from gettext import install
+
+from rest_framework.validators import ValidationError
 from .models import OTM, Patron, Student, PatronToStudent
 from rest_framework import serializers
 
@@ -10,6 +12,10 @@ class PatronSerializer(serializers.ModelSerializer):
         fields = "__all__"
         depth = 1
         read_only_fields = ('id',)
+
+    def validate(self,data):
+        """Can admin rob patrons payment?"""
+        pass
 
     
 class OTMSerializer(serializers.ModelSerializer):
